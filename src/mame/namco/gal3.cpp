@@ -906,9 +906,100 @@ ROM_START( gal3 )
 	DISK_IMAGE_READONLY( "gal3_ld2", 0, NO_DUMP )
 ROM_END
 
+
+ROM_START( gal3zlgr )
+	/********* CPU-MST board x1 *********/
+	ROM_REGION( 0x200000, "maincpu", 0 ) /* 68020 Code */
+	ROM_LOAD32_BYTE( "gz2e-mst-prg0-e78f.6b",  0x00003, 0x80000, CRC(0d8760cc) SHA1(a57e07b3e8195779055e3ca3d8ba91488f5bb7da) )
+	ROM_LOAD32_BYTE( "gz2e-mst-prg1-9baf.10b", 0x00002, 0x80000, CRC(fc1e7a06) SHA1(b495302d66ca99d98aeeff6685c05795e506d2de) )
+	ROM_LOAD32_BYTE( "gz2e-mst-prg2-a7c6.14b", 0x00001, 0x80000, CRC(cbd4a7e5) SHA1(067bf775c683f28a09c8910824a8174377e5c57f) )
+	ROM_LOAD32_BYTE( "gz2e-mst-prg3-0a57.18b", 0x00000, 0x80000, CRC(616d0133) SHA1(456cf35bc2b293ae0f1d48e6ac171e02b6df172b) )
+
+	/********* CPU-SLV board x1 *********/
+	ROM_REGION( 0x080000, "cpuslv", 0 ) /* 68020 Code */
+	ROM_LOAD32_BYTE( "gz1-slv-prg0.6b",  0x00003, 0x20000, CRC(58828a8f) SHA1(8d246c38907dbb1007aeba4485d71584b28c4f87) )
+	ROM_LOAD32_BYTE( "gz1-slv-prg1.10b", 0x00002, 0x20000, CRC(4ec6f2fe) SHA1(83452d912fe02cd7dc29f1b83be40f63ac5c7d64) )
+	ROM_LOAD32_BYTE( "gz1-slv-prg2.14b", 0x00001, 0x20000, CRC(133942c9) SHA1(12e0411e54057c4bc3eaf2f9f065d7c2b775dc06) )
+	ROM_LOAD32_BYTE( "gz1-slv-prg3.18b", 0x00000, 0x20000, CRC(58bec4cb) SHA1(e7f6a62c6e500149cc10881f54b400cae0bc09d5) )
+
+	/********* DSP board x2 *********/
+	ROM_REGION32_BE( 0x400000, "namcos21dsp_c67_1:point24", ROMREGION_ERASE ) /* 24bit signed point data */
+	ROM_LOAD32_BYTE( "gz1-dsp-poth.2f", 0x000001, 0x80000, CRC(d0f6d9fe) SHA1(a8b56df54f4dfe0fd856803b7be0a34b9ec1af7e) )  /* most significant */
+	ROM_LOAD32_BYTE( "gz1-dsp-potu.2k", 0x000002, 0x80000, CRC(072a99a4) SHA1(cdfac76b768d1b966e079d508784b9588c278335) )
+	ROM_LOAD32_BYTE( "gz1-dsp-potl.2n", 0x000003, 0x80000, CRC(b318534a) CRC(2c528c1e) SHA1(8d9e0142376de15754dc11207e538f541b423497) )  /* least significant */
+
+	ROM_REGION32_BE( 0x400000, "namcos21dsp_c67_2:point24", ROMREGION_ERASE ) /* 24bit signed point data */
+	ROM_LOAD32_BYTE( "gz1-dsp-poth.2f", 0x000001, 0x80000, CRC(d0f6d9fe) SHA1(a8b56df54f4dfe0fd856803b7be0a34b9ec1af7e) )  /* most significant */
+	ROM_LOAD32_BYTE( "gz1-dsp-potu.2k", 0x000002, 0x80000, CRC(072a99a4) SHA1(cdfac76b768d1b966e079d508784b9588c278335) )
+	ROM_LOAD32_BYTE( "gz1-dsp-potl.2n", 0x000003, 0x80000, CRC(b318534a) CRC(2c528c1e) SHA1(8d9e0142376de15754dc11207e538f541b423497) )  /* least significant */
+
+	/********* OBJ board x2 *********/
+	ROM_REGION( 0x200000, "c355spr_1", 0 )
+	ROM_LOAD32_BYTE( "gz1-obj-obj0.9t", 0x000000, 0x80000, CRC(8c6730b6) SHA1(3147d487dba352301148ab490a704516246cb057) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj1.9w", 0x000002, 0x80000, CRC(cba30c26) SHA1(5eb7ab0d9353e1e44a87a96f2ba5fbd22902ccc0) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj2.9y", 0x000001, 0x80000, CRC(c9a8abf3) SHA1(a7969a01b1174032e02cdd8f81850eb67d5e747f) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj3.9z", 0x000003, 0x80000, CRC(31d55cb8) SHA1(76f3841727e1244d4582559593e7ebff801273a1) )
+
+	ROM_REGION( 0x200000, "c355spr_2", 0 )
+	ROM_LOAD32_BYTE( "gz1-obj-obj0.9t", 0x000000, 0x80000, CRC(8c6730b6) SHA1(3147d487dba352301148ab490a704516246cb057) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj1.9w", 0x000002, 0x80000, CRC(cba30c26) SHA1(5eb7ab0d9353e1e44a87a96f2ba5fbd22902ccc0) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj2.9y", 0x000001, 0x80000, CRC(c9a8abf3) SHA1(a7969a01b1174032e02cdd8f81850eb67d5e747f) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj3.9z", 0x000003, 0x80000, CRC(31d55cb8) SHA1(76f3841727e1244d4582559593e7ebff801273a1) )
+
+	/********* PSN board x3 *********/
+	ROM_REGION( 0x040000, "psn_b1_cpu", 0 )
+	ROM_LOAD16_BYTE( "glc1-psn-prg0c.ic22", 0x000001, 0x20000, CRC(3d6e22f7) SHA1(84278036bb474cd00157d809fea020eb847fccd4) )
+	ROM_LOAD16_BYTE( "glc1-psn-prg1c.ic23", 0x000000, 0x20000, CRC(8dd45bce) SHA1(a1fc4ee2dac238e6ca66c16b5a5b2d681892bc91) )
+	ROM_REGION( 0x020000, "psn_b1_vol", 0 )
+	ROM_LOAD( "glc1-psn-v0l.ic100", 0x000000, 0x20000, CRC(9d49576c) SHA1(25c02d2cc171468711c71d8f2da0ea7d9b5f0c23) )
+
+	ROM_REGION( 0x040000, "psn_b2_cpu", 0 )
+	ROM_LOAD16_BYTE( "glc1-psn-prg0c.ic22", 0x000001, 0x20000, CRC(3d6e22f7) SHA1(84278036bb474cd00157d809fea020eb847fccd4) )
+	ROM_LOAD16_BYTE( "glc1-psn-prg1c.ic23", 0x000000, 0x20000, CRC(8dd45bce) SHA1(a1fc4ee2dac238e6ca66c16b5a5b2d681892bc91) )
+	ROM_REGION( 0x020000, "psn_b2_vol", 0 )
+	ROM_LOAD( "glc1-psn-v0l.ic100", 0x000000, 0x20000, CRC(9d49576c) SHA1(25c02d2cc171468711c71d8f2da0ea7d9b5f0c23) )
+
+	ROM_REGION( 0x040000, "psn_b3_cpu", 0 )
+	ROM_LOAD16_BYTE( "glc1-psn-prg0c.ic22", 0x000001, 0x20000, CRC(3d6e22f7) SHA1(84278036bb474cd00157d809fea020eb847fccd4) )
+	ROM_LOAD16_BYTE( "glc1-psn-prg1c.ic23", 0x000000, 0x20000, CRC(8dd45bce) SHA1(a1fc4ee2dac238e6ca66c16b5a5b2d681892bc91) )
+	ROM_REGION( 0x020000, "psn_b3_vol", 0 )
+	ROM_LOAD( "glc1-psn-v0l.ic100", 0x000000, 0x20000, CRC(9d49576c) SHA1(25c02d2cc171468711c71d8f2da0ea7d9b5f0c23) )
+
+	/********* RS board x1 *********/
+	ROM_REGION( 0x040000, "rs_cpu", 0 )
+	ROM_LOAD16_BYTE( "gz1-rs-prgl.18b", 0x000001, 0x20000, CRC(4452046b) SHA1(e3754d625b3b32b72836fe0649ecb885d0c61dd6) )
+	ROM_LOAD16_BYTE( "gz1-rs-prgu.19b", 0x000000, 0x20000, CRC(daa089f7) SHA1(5f2ad90a67068cb7986945144da0facefbdd4ebc) )
+
+	/********* SOUND board x1 *********/
+	ROM_REGION( 0x080000, "sound_cpu", ROMREGION_ERASE00 )
+	ROM_LOAD16_BYTE( "gz1-snd-prg0.1h", 0x000000, 0x20000, CRC(24f39552) SHA1(31d1d8248742ee767c0e390a67ce46974e31879e) )
+	ROM_LOAD16_BYTE( "gz1-snd-prg1.2h", 0x000001, 0x20000, CRC(e06c6381) SHA1(12eb5c3f3bc4700ba39328e2d3aa5f6847b6ca08) )
+	ROM_LOAD16_BYTE( "gz1-snd-data1b.5h", 0x040001, 0x20000, CRC(bf8a68b8) SHA1(6e8cfc1fb4463acd9135b94b258e92b13a09b21f) )
+
+	ROM_REGION( 0x200000, "samples", ROMREGION_ERASE00 )
+	ROM_LOAD( "gz2-snd-voi0.13a",  0x000000, 0x80000, CRC(25443ea7) SHA1(75429504e2b42671e3cd20f9fab0b49d7749a5bf) )
+	ROM_LOAD( "gz2-snd-voi1.14a",  0x000000, 0x80000, CRC(712cd42f) SHA1(74a2458f98dd2ae47c7dbe682207382205923860) )
+	ROM_LOAD( "gz2-snd-voi2.13c",  0x000000, 0x80000, CRC(25443ea7) SHA1(75429504e2b42671e3cd20f9fab0b49d7749a5bf) )
+	ROM_LOAD( "gz2-snd-voi3.14c",  0x000000, 0x80000, CRC(712cd42f) SHA1(74a2458f98dd2ae47c7dbe682207382205923860) )
+	ROM_LOAD( "gz2-snd-voi8.10g",  0x000000, 0x80000, CRC(11c77554) SHA1(e4392b156ad5162f8848cc4947931d72df2faeae) )
+	ROM_LOAD( "gz2-snd-voi9.11g",  0x000000, 0x80000, CRC(08112f11) SHA1(44931eb46c755ea6ae1c06129137d9a38b4c57cc) )
+	ROM_LOAD( "gz2-snd-voi10.13g", 0x000000, 0x80000, CRC(11d08f85) SHA1(533a78d57821f0dfedc27bf1bd280339b3d1aeb4) )
+	ROM_LOAD( "gz2-snd-voi11.14g", 0x000000, 0x80000, CRC(d6808d5b) SHA1(a9f8e29dab54bec5c37738a02782b923fc9bbe41) )
+
+	/********* Laserdiscs *********/
+	/* used 2 apparently, no idea what they connect to */
+
+	DISK_REGION( "laserdisc1" )
+	//DISK_IMAGE_READONLY( "gal3_ld1", 0, NO_DUMP )
+
+	DISK_REGION( "laserdisc2" )
+	//DISK_IMAGE_READONLY( "gal3_ld2", 0, NO_DUMP )
+ROM_END
+
+
 } // anonymous namespace
 
 
 /*     YEAR  NAME     PARENT  MACHINE  INPUT  CLASS       INIT        MONITOR  COMPANY  FULLNAME                                    FLAGS */
-GAMEL( 1992, gal3,    0,      gal3,    gal3,  gal3_state, empty_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Project Dragoon", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
-//GAMEL( 1994, gal3zlgr,    0,        gal3,    gal3, driver_device,    0, ROT0,  "Namco", "Galaxian 3 - Theater 6 J2 : Attack of The Zolgear", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
+GAMEL( 1992, gal3,     0,     gal3,    gal3,  gal3_state, empty_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Project Dragoon", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
+GAMEL( 1994, gal3zlgr, 0,     gal3,    gal3,  gal3_state, empty_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Attack of The Zolgear", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
