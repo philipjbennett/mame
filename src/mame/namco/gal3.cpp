@@ -159,6 +159,8 @@ public:
 
 	void gal3(machine_config &config);
 
+	void gal3zlgr_init();
+
 protected:
 	virtual void machine_start() override ATTR_COLD;
 	virtual void video_start() override ATTR_COLD;
@@ -1000,6 +1002,14 @@ ROM_END
 } // anonymous namespace
 
 
-/*     YEAR  NAME     PARENT  MACHINE  INPUT  CLASS       INIT        MONITOR  COMPANY  FULLNAME                                    FLAGS */
-GAMEL( 1992, gal3,     0,     gal3,    gal3,  gal3_state, empty_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Project Dragoon", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
-GAMEL( 1994, gal3zlgr, 0,     gal3,    gal3,  gal3_state, empty_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Attack of The Zolgear", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
+void gal3_state::gal3zlgr_init()
+{
+	uint8_t *rom  = (uint8_t *)memregion("cpuslv")->base();
+
+	rom[0x2016] = 0x16; // Timing hack to delay the slave 68020 for longer (was 0x4)
+}
+
+
+/*     YEAR  NAME     PARENT  MACHINE  INPUT  CLASS       INIT           MONITOR  COMPANY  FULLNAME                                    FLAGS */
+GAMEL( 1992, gal3,     0,     gal3,    gal3,  gal3_state, empty_init,    ROT0,    "Namco", "Galaxian 3 - Theater 6 : Project Dragoon", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
+GAMEL( 1994, gal3zlgr, 0,     gal3,    gal3,  gal3_state, gal3zlgr_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Attack of the Zolgear", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
