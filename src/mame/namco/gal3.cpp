@@ -318,7 +318,7 @@ void gal3_state::led_slv_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 template<int Screen>
 uint16_t gal3_state::video_enable_r()
 {
-	return m_video_enable[Screen];
+	return m_video_enable[Screen] | (rand() & 1); // TODO: What am I?
 }
 
 template<int Screen>
@@ -380,7 +380,7 @@ void gal3_state::cpu_slv_map(address_map &map)
 	map(0xf1440004, 0xf147ffff).nopw();
 	map(0xf1480000, 0xf14807ff).rw(m_namcos21_dsp_c67[0], FUNC(namcos21_dsp_c67_device::namcos21_depthcue_r), FUNC(namcos21_dsp_c67_device::namcos21_depthcue_w));
 
-	map(0xf1700000, 0xf170ffff).rw(m_c355spr[0], FUNC(namco_c355spr_device::spriteram_r), FUNC(namco_c355spr_device::spriteram_w)).share("objram_1");
+	map(0xf1700000, 0xf171ffff).rw(m_c355spr[0], FUNC(namco_c355spr_device::spriteram_r), FUNC(namco_c355spr_device::spriteram_w)).share("objram_1");
 	map(0xf1720000, 0xf1720007).rw(m_c355spr[0], FUNC(namco_c355spr_device::position_r), FUNC(namco_c355spr_device::position_w));
 	map(0xf1740000, 0xf174ffff).rw(m_palette[0], FUNC(palette_device::read16), FUNC(palette_device::write16)).share("palette_1");
 	map(0xf1750000, 0xf175ffff).rw(m_palette[0], FUNC(palette_device::read16_ext), FUNC(palette_device::write16_ext)).share("palette_1_ext");
@@ -393,7 +393,7 @@ void gal3_state::cpu_slv_map(address_map &map)
 	map(0xf2440004, 0xf247ffff).nopw();
 	map(0xf2480000, 0xf24807ff).rw(m_namcos21_dsp_c67[1], FUNC(namcos21_dsp_c67_device::namcos21_depthcue_r), FUNC(namcos21_dsp_c67_device::namcos21_depthcue_w));
 
-	map(0xf2700000, 0xf270ffff).rw(m_c355spr[1], FUNC(namco_c355spr_device::spriteram_r), FUNC(namco_c355spr_device::spriteram_w)).share("objram_2");
+	map(0xf2700000, 0xf271ffff).rw(m_c355spr[1], FUNC(namco_c355spr_device::spriteram_r), FUNC(namco_c355spr_device::spriteram_w)).share("objram_2");
 	map(0xf2720000, 0xf2720007).rw(m_c355spr[1], FUNC(namco_c355spr_device::position_r), FUNC(namco_c355spr_device::position_w));
 	map(0xf2740000, 0xf274ffff).rw(m_palette[1], FUNC(palette_device::read16), FUNC(palette_device::write16)).share("palette_2");
 	map(0xf2750000, 0xf275ffff).rw(m_palette[1], FUNC(palette_device::read16_ext), FUNC(palette_device::write16_ext)).share("palette_2_ext");
