@@ -154,7 +154,8 @@ public:
 		m_c140_16a(*this, "c140_16a"),
 		m_c140_16g(*this, "c140_16g"),
 		m_namcos21_3d(*this, "namcos21_3d_%u", 1U),
-		m_namcos21_dsp_c67(*this, "namcos21dsp_c67_%u", 1U)
+		m_namcos21_dsp_c67(*this, "namcos21dsp_c67_%u", 1U),
+	    m_screen(*this, "screen%u", 1U)
 	{ }
 
 	void gal3(machine_config &config);
@@ -166,15 +167,17 @@ protected:
 	virtual void video_start() override ATTR_COLD;
 
 private:
-	required_device_array<namco_c355spr_device, 2> m_c355spr;
-	required_device_array<palette_device, 2> m_palette;
-	uint16_t m_video_enable[2];
+	required_device_array<namco_c355spr_device, 3> m_c355spr;
+	required_device_array<palette_device, 3> m_palette;
+	uint16_t m_video_enable[3];
 	required_shared_ptr<uint16_t> m_rso_shared_ram;
 	required_device<c140_device> m_c140_16a;
 	required_device<c140_device> m_c140_16g;
 
 	required_device_array<namcos21_3d_device, 2> m_namcos21_3d;
 	required_device_array<namcos21_dsp_c67_device, 2> m_namcos21_dsp_c67;
+	
+	required_device_array<screen_device, 3> m_screen;
 
 	uint32_t m_led_mst = 0;
 	uint32_t m_led_slv = 0;
@@ -191,6 +194,7 @@ private:
 	// using ind16 for now because namco_c355spr_device::zdrawgfxzoom does not support rgb32, will probably need to be improved for LD use
 	uint32_t screen_update_left(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	uint32_t screen_update_right(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
+	uint32_t screen_update_debug(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	void cpu_mst_map(address_map &map) ATTR_COLD;
 	void cpu_slv_map(address_map &map) ATTR_COLD;
 	void psn_b1_cpu_map(address_map &map) ATTR_COLD;
@@ -292,6 +296,33 @@ uint32_t gal3_state::screen_update_right(screen_device &screen, bitmap_ind16 &bi
 	return 0;
 }
 
+uint32_t gal3_state::screen_update_debug(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
+{
+	bitmap.fill(0xff, cliprect); // TODO : actually laserdisc layer
+	screen.priority().fill(0, cliprect);
+	m_c355spr[2]->build_sprite_list_and_render_sprites(cliprect); // TODO : buffered?
+
+	static int pivot = 15;
+	int pri;
+
+	if( machine().input().code_pressed_once(KEYCODE_H)&&(pivot<15) )    pivot+=1;
+	if( machine().input().code_pressed_once(KEYCODE_J)&&(pivot>0) ) pivot-=1;
+
+	for( pri=0; pri<pivot; pri++ )
+	{
+		m_c355spr[2]->draw(screen, bitmap, cliprect, pri);
+	}
+
+/*  CopyVisiblePolyFrameBuffer( bitmap, cliprect,0,0x7fbf );
+
+	for( pri=pivot; pri<15; pri++ )
+	{
+	   m_c355spr[1]->draw(screen, bitmap, cliprect, pri);
+	}*/
+
+	return 0;
+}
+
 
 /***************************************************************************************/
 
@@ -318,7 +349,7 @@ void gal3_state::led_slv_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 template<int Screen>
 uint16_t gal3_state::video_enable_r()
 {
-	return m_video_enable[Screen] | (rand() & 1); // TODO: What am I?
+	return rand() & 1;//m_screen[Screen]->frame_number() & 1;
 }
 
 template<int Screen>
@@ -351,13 +382,18 @@ void gal3_state::cpu_mst_map(address_map &map)
 	map(0x44800000, 0x44800003).r(FUNC(gal3_state::led_mst_r)).w(FUNC(gal3_state::led_mst_w)); //LEDs
 	map(0x48000000, 0x48000003).nopr(); //irq1 v-blank ack
 	map(0x4c000000, 0x4c000003).nopr(); //irq3 ack
-	map(0x60000000, 0x60007fff).ram().share("share1");  //CRAM
-	map(0x60010000, 0x60017fff).ram().share("share1");  //Mirror
+	map(0x60000000, 0x60007fff).mirror(0x10000).ram().share("share1");  //CRAM
 	map(0x80000000, 0x8007ffff).ram(); //512K Local RAM
 /// map(0xc0000000, 0xc000000b).nopw();    //upload?
 	map(0xc000000c, 0xc000000f).nopr(); //irq2 ack
 /// map(0xd8000000, 0xd800000f).ram(); // protection or 68681?
 	map(0xf2800000, 0xf2800fff).rw(FUNC(gal3_state::rso_r), FUNC(gal3_state::rso_w)); //RSO PCB
+	
+	map(0xf4700000, 0xf471ffff).rw(m_c355spr[2], FUNC(namco_c355spr_device::spriteram_r), FUNC(namco_c355spr_device::spriteram_w)).share("objram_3");
+	map(0xf4720000, 0xf4720007).rw(m_c355spr[2], FUNC(namco_c355spr_device::position_r), FUNC(namco_c355spr_device::position_w));
+	map(0xf4740000, 0xf474ffff).rw(m_palette[2], FUNC(palette_device::read16), FUNC(palette_device::write16)).share("palette_3");
+	map(0xf4750000, 0xf475ffff).rw(m_palette[2], FUNC(palette_device::read16_ext), FUNC(palette_device::write16_ext)).share("palette_3_ext");
+	map(0xf4760000, 0xf4760001).rw(FUNC(gal3_state::video_enable_r<2>), FUNC(gal3_state::video_enable_w<2>));
 }
 
 void gal3_state::cpu_slv_map(address_map &map)
@@ -369,8 +405,7 @@ void gal3_state::cpu_slv_map(address_map &map)
 	map(0x48000000, 0x48000003).nopr(); //irq1 ack
 /// map(0x50000000, 0x50000003).rw(FUNC(gal3_state::), FUNC(gal3_state::));
 /// map(0x54000000, 0x54000003).rw(FUNC(gal3_state::), FUNC(gal3_state::));
-	map(0x60000000, 0x60007fff).ram().share("share1");
-	map(0x60010000, 0x60017fff).ram().share("share1");
+	map(0x60000000, 0x60007fff).mirror(0x10000).ram().share("share1");
 	map(0x80000000, 0x8007ffff).ram(); //512K Local RAM
 
 	// Video chain 1
@@ -405,62 +440,63 @@ void gal3_state::rs_cpu_map(address_map &map)
 	map(0x000000, 0x03ffff).rom();
 	map(0x100000, 0x10ffff).ram(); //64K working RAM
 
-/// map(0x180000, 0x183fff).ram(); //Nvram
+/// map(0x180000, 0x183fff).ram(); // NVRAM
 
-	map(0x1c0000, 0x1c0001).ram(); //148?
-	map(0x1c2000, 0x1c2001).ram(); //?
-	map(0x1c4000, 0x1c4001).ram(); //?
-	map(0x1c6000, 0x1c6001).ram(); //?
-	map(0x1c8000, 0x1c8001).ram(); //?
-	map(0x1ca000, 0x1ca001).ram(); //?
-	map(0x1cc000, 0x1cc001).ram(); //?
-	map(0x1ce000, 0x1ce001).ram(); //?
-	map(0x1d2000, 0x1d2001).ram(); //?
-	map(0x1d4000, 0x1d4001).ram(); //?
-	map(0x1d6000, 0x1d6001).ram(); //?
-	map(0x1de000, 0x1de001).ram(); //?
-	map(0x1e4000, 0x1e4001).ram(); //?
-	map(0x1e6000, 0x1e6001).ram(); //?
+	map(0x1c0000, 0x1c0001).ram(); // C148
+	map(0x1c2000, 0x1c2001).ram();
+	map(0x1c4000, 0x1c4001).ram();
+	map(0x1c6000, 0x1c6001).ram();
+	map(0x1c8000, 0x1c8001).ram();
+	map(0x1ca000, 0x1ca001).ram();
+	map(0x1cc000, 0x1cc001).ram();
+	map(0x1ce000, 0x1ce001).ram();
+	map(0x1d2000, 0x1d2001).ram();
+	map(0x1d4000, 0x1d4001).ram();
+	map(0x1d6000, 0x1d6001).ram();
+	map(0x1de000, 0x1de001).ram();
+	map(0x1e4000, 0x1e4001).ram();
+	map(0x1e6000, 0x1e6001).ram();
+//	map(0x1c0000, 0x1fffff).m(m_master_intc, FUNC(namco_c148_device::map));
 
-	map(0x200000, 0x200001).ram(); //?
+	map(0x200000, 0x200001).portr("DSW_RSO").nopw(); // LEDs and DIP switches
 
-	map(0x2c0000, 0x2c0001).ram(); //?
-	map(0x2c0800, 0x2c0801).ram(); //?
-	map(0x2c1000, 0x2c1001).ram(); //?
-	map(0x2c1800, 0x2c1801).ram(); //?
-	map(0x2c2000, 0x2c2001).ram(); //?
-	map(0x2c2800, 0x2c2801).ram(); //?
-	map(0x2c3000, 0x2c3001).ram(); //?
-	map(0x2c3800, 0x2c3801).ram(); //?
-	map(0x2c4000, 0x2c4001).ram(); //?
+	map(0x2c0000, 0x2c0001).ram(); // C139 20P INT ACK
+	map(0x2c0800, 0x2c0801).ram(); // C139 20K INT ACK
+	map(0x2c1000, 0x2c1001).ram(); // C139 18P INT ACK
+	map(0x2c1800, 0x2c1801).ram(); // C139 18K INT ACK
+	map(0x2c2000, 0x2c2001).ram(); // C139 15P INT ACK
+	map(0x2c2800, 0x2c2801).ram(); // C139 15K INT ACK
+	map(0x2c3000, 0x2c3001).ram(); // C139 11P INT ACK
+	map(0x2c3800, 0x2c3801).ram(); // C139 11K INT ACK
+	map(0x2c4000, 0x2c4001).ram(); // C139 11S INT ACK
 
-	map(0x300000, 0x300fff).ram().share("rso_shared_ram");  //shared RAM
+	map(0x300000, 0x300fff).ram().share("rso_shared_ram");
 
-	map(0x400000, 0x400017).ram(); //MC68681?
-	map(0x480000, 0x480017).ram(); //?
-	map(0x500000, 0x500017).ram(); //?
-	map(0x580000, 0x580017).ram(); //?
-	map(0x600000, 0x600017).ram(); //?
-	map(0x680000, 0x680017).ram(); //?
+	map(0x400000, 0x400017).ram(); // MC68681 7L
+	map(0x480000, 0x480017).ram(); // MC68681 8L
+	map(0x500000, 0x500017).ram(); // MC68681 4L
+	map(0x580000, 0x580017).ram(); // MC68681 6L
+	map(0x600000, 0x600017).ram(); // MC68681 1L
+	map(0x680000, 0x680017).ram(); // MC68681 3L
 
-	map(0x800000, 0x80000f).ram(); //?
-	map(0x840000, 0x843fff).ram(); //8 bit, 139 SCI RAM?
-	map(0x880000, 0x88000f).ram(); //?
-	map(0x8c0000, 0x8c3fff).ram(); //8 bit
-	map(0x900000, 0x90000f).ram(); //?
-	map(0x940000, 0x943fff).ram(); //8 bit
-	map(0x980000, 0x98000f).ram(); //?
-	map(0x9c0000, 0x9c3fff).ram(); //8 bit
-	map(0xa00000, 0xa0000f).ram(); //?
-	map(0xa40000, 0xa43fff).ram(); //8 bit
-	map(0xa80000, 0xa8000f).ram(); //?
-	map(0xac0000, 0xac3fff).ram(); //8 bit
-	map(0xb00000, 0xb0000f).ram(); //?
-	map(0xb40000, 0xb43fff).ram(); //8 bit
-	map(0xb80000, 0xb8000f).ram(); //?
-	map(0xbc0000, 0xbc3fff).ram(); //8 bit
-	map(0xc00000, 0xc0000f).ram(); //?
-	map(0xc40000, 0xc43fff).ram(); //8 bit
+	map(0x800000, 0x80000f).ram(); // C139 20P
+	map(0x840000, 0x843fff).ram();
+	map(0x880000, 0x88000f).ram(); // C139 20K
+	map(0x8c0000, 0x8c3fff).ram();
+	map(0x900000, 0x90000f).ram(); // C139 18P
+	map(0x940000, 0x943fff).ram();
+	map(0x980000, 0x98000f).ram(); // C139 18K
+	map(0x9c0000, 0x9c3fff).ram();
+	map(0xa00000, 0xa0000f).ram(); // C139 15P
+	map(0xa40000, 0xa43fff).ram();
+	map(0xa80000, 0xa8000f).ram(); // C139 15K
+	map(0xac0000, 0xac3fff).ram();
+	map(0xb00000, 0xb0000f).ram(); // C139 11P
+	map(0xb40000, 0xb43fff).ram();
+	map(0xb80000, 0xb8000f).ram(); // C139 11K
+	map(0xbc0000, 0xbc3fff).ram();
+	map(0xc00000, 0xc0000f).ram(); // C139 11S
+	map(0xc40000, 0xc43fff).ram();
 
 /// map(0xc44000, 0xffffff).ram(); /////////////
 }
@@ -590,21 +626,47 @@ static INPUT_PORTS_START( gal3 )
 	PORT_DIPNAME( 0x80000000, 0x80000000, "DIPSW 4-8")
 	PORT_DIPSETTING(      0x80000000, DEF_STR( Off ) )
 	PORT_DIPSETTING(      0x00000000, DEF_STR( On ) )
+
+	PORT_START("DSW_RSO")
+	PORT_DIPNAME( 0x0001, 0x0001, "RSO_DIP 1" )
+	PORT_DIPSETTING(      0x0001, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0002, 0x0002, "RSO_DIP 2" )
+	PORT_DIPSETTING(      0x0002, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0004, 0x0004, "RSO_DIP 3" )
+	PORT_DIPSETTING(      0x0004, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0008, 0x0008, "RSO_DIP 4" )
+	PORT_DIPSETTING(      0x0008, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0010, 0x0010, "RSO_DIP 5" )
+	PORT_DIPSETTING(      0x0010, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0020, 0x0020, "RSO_DIP 6" )
+	PORT_DIPSETTING(      0x0020, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0040, 0x0040, "RSO_DIP 7" )
+	PORT_DIPSETTING(      0x0040, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0080, 0x0080, "RSO_DIP 8" )
+	PORT_DIPSETTING(      0x0080, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
 INPUT_PORTS_END
 
 void gal3_state::gal3(machine_config &config)
 {
 	m68020_device &maincpu(M68020(config, "maincpu", 49152000/2));
 	maincpu.set_addrmap(AS_PROGRAM, &gal3_state::cpu_mst_map);
-	maincpu.set_vblank_int("lscreen", FUNC(gal3_state::irq1_line_hold));
+	maincpu.set_vblank_int("screen1", FUNC(gal3_state::irq1_line_hold));
 
 	m68020_device &cpusly(M68020(config, "cpuslv", 49152000/2));
 	cpusly.set_addrmap(AS_PROGRAM, &gal3_state::cpu_slv_map);
-	cpusly.set_vblank_int("lscreen", FUNC(gal3_state::irq1_line_hold));
+	cpusly.set_vblank_int("screen1", FUNC(gal3_state::irq1_line_hold));
 
 	m68000_device &rs_cpu(M68000(config, "rs_cpu", 49152000/4));
 	rs_cpu.set_addrmap(AS_PROGRAM, &gal3_state::rs_cpu_map);
-	rs_cpu.set_vblank_int("lscreen", FUNC(gal3_state::irq5_line_hold));  /// programmable via 148 IC
+	rs_cpu.set_vblank_int("screen1", FUNC(gal3_state::irq5_line_hold));  /// programmable via 148 IC
 
 	m68000_device &sound_cpu(M68000(config, "sound_cpu", 49152000/4)); // ??
 	sound_cpu.set_addrmap(AS_PROGRAM, &gal3_state::sound_cpu_map);
@@ -624,24 +686,24 @@ void gal3_state::gal3(machine_config &config)
 
 	// video chain 1
 
-	screen_device &lscreen(SCREEN(config, "lscreen", SCREEN_TYPE_RASTER));
-	lscreen.set_refresh_hz(60);
-	lscreen.set_vblank_time(ATTOSECONDS_IN_USEC(0));
-	lscreen.set_size(64*8, 64*8);
-	lscreen.set_visarea(0*8, 512-1, 0*8, 512-1);
-	lscreen.set_screen_update(FUNC(gal3_state::screen_update_left));
-	lscreen.set_palette(m_palette[0]);
+	SCREEN(config, m_screen[0], SCREEN_TYPE_RASTER);
+	m_screen[0]->set_refresh_hz(60);
+	m_screen[0]->set_vblank_time(ATTOSECONDS_IN_USEC(0));
+	m_screen[0]->set_size(64*8, 64*8);
+	m_screen[0]->set_visarea(0*8, 512-1, 0*8, 512-1);
+	m_screen[0]->set_screen_update(FUNC(gal3_state::screen_update_left));
+	m_screen[0]->set_palette(m_palette[0]);
 
 	PALETTE(config, m_palette[0]).set_format(palette_device::xBRG_888, 0x10000/2);
 	m_palette[0]->set_membits(16);
 
 	NAMCO_C355SPR(config, m_c355spr[0], 0);
-	m_c355spr[0]->set_screen("lscreen");
+	m_c355spr[0]->set_screen(m_screen[0]);
 	m_c355spr[0]->set_palette(m_palette[0]);
 	m_c355spr[0]->set_scroll_offsets(0x26, 0x19);
 	m_c355spr[0]->set_tile_callback(namco_c355spr_device::c355_obj_code2tile_delegate());
-	m_c355spr[0]->set_palxor(0xf); // reverse mapping
-	m_c355spr[0]->set_color_base(0x1000); // TODO : verify palette offset
+	m_c355spr[0]->set_palxor(0); // reverse mapping
+	m_c355spr[0]->set_color_base(0x0); // TODO : verify palette offset
 	m_c355spr[0]->set_external_prifill(true);
 
 	NAMCOS21_3D(config, m_namcos21_3d[0], 0);
@@ -652,26 +714,26 @@ void gal3_state::gal3(machine_config &config)
 	NAMCOS21_DSP_C67(config, m_namcos21_dsp_c67[0], 0);
 	m_namcos21_dsp_c67[0]->set_renderer_tag("namcos21_3d_1");
 
+	
 	// video chain 2
-
-	screen_device &rscreen(SCREEN(config, "rscreen", SCREEN_TYPE_RASTER));
-	rscreen.set_refresh_hz(60);
-	rscreen.set_vblank_time(ATTOSECONDS_IN_USEC(0));
-	rscreen.set_size(64*8, 64*8);
-	rscreen.set_visarea(0*8, 512-1, 0*8, 512-1);
-	rscreen.set_screen_update(FUNC(gal3_state::screen_update_right));
-	rscreen.set_palette(m_palette[1]);
+	SCREEN(config, m_screen[1], SCREEN_TYPE_RASTER);
+	m_screen[1]->set_refresh_hz(60);
+	m_screen[1]->set_vblank_time(ATTOSECONDS_IN_USEC(0));
+	m_screen[1]->set_size(64*8, 64*8);
+	m_screen[1]->set_visarea(0*8, 512-1, 0*8, 512-1);
+	m_screen[1]->set_screen_update(FUNC(gal3_state::screen_update_right));
+	m_screen[1]->set_palette(m_palette[1]);
 
 	PALETTE(config, m_palette[1]).set_format(palette_device::xBRG_888, 0x10000/2);
 	m_palette[1]->set_membits(16);
 
 	NAMCO_C355SPR(config, m_c355spr[1], 0);
-	m_c355spr[1]->set_screen("rscreen");
+	m_c355spr[1]->set_screen(m_screen[1]);
 	m_c355spr[1]->set_palette(m_palette[1]);
 	m_c355spr[1]->set_scroll_offsets(0x26, 0x19);
 	m_c355spr[1]->set_tile_callback(namco_c355spr_device::c355_obj_code2tile_delegate());
-	m_c355spr[1]->set_palxor(0xf); // reverse mapping
-	m_c355spr[1]->set_color_base(0x1000); // TODO : verify palette offset
+	m_c355spr[1]->set_palxor(0); // reverse mapping
+	m_c355spr[1]->set_color_base(0x0); // TODO : verify palette offset
 	m_c355spr[1]->set_external_prifill(true);
 
 	NAMCOS21_3D(config, m_namcos21_3d[1], 0);
@@ -681,6 +743,27 @@ void gal3_state::gal3(machine_config &config)
 
 	NAMCOS21_DSP_C67(config, m_namcos21_dsp_c67[1], 0);
 	m_namcos21_dsp_c67[1]->set_renderer_tag("namcos21_3d_2");
+	
+	// video chain 3 - DEBUG
+	SCREEN(config, m_screen[2], SCREEN_TYPE_RASTER);
+	m_screen[2]->set_refresh_hz(60);
+	m_screen[2]->set_vblank_time(ATTOSECONDS_IN_USEC(0));
+	m_screen[2]->set_size(64*8, 64*8);
+	m_screen[2]->set_visarea(0*8, 512-1, 0*8, 512-1);
+	m_screen[2]->set_screen_update(FUNC(gal3_state::screen_update_debug));
+	m_screen[2]->set_palette(m_palette[1]);
+
+	PALETTE(config, m_palette[2]).set_format(palette_device::xBRG_888, 0x10000/2);
+	m_palette[2]->set_membits(16);
+
+	NAMCO_C355SPR(config, m_c355spr[2], 0);
+	m_c355spr[2]->set_screen(m_screen[2]);
+	m_c355spr[2]->set_palette(m_palette[2]);
+	m_c355spr[2]->set_scroll_offsets(0x26, 0x19);
+	m_c355spr[2]->set_tile_callback(namco_c355spr_device::c355_obj_code2tile_delegate());
+	m_c355spr[2]->set_palxor(0); // reverse mapping
+	m_c355spr[2]->set_color_base(0x0); // TODO : verify palette offset
+	m_c355spr[2]->set_external_prifill(true);
 
 
 	SPEAKER(config, "lspeaker").front_left();
@@ -860,6 +943,12 @@ ROM_START( gal3 )
 	ROM_LOAD32_BYTE( "glc1-obj-obj2.9y", 0x000002, 0x80000, CRC(90bcc5a3) SHA1(76cb23e295bb15279e046e83f8e4ab9f85f68243) )
 	ROM_LOAD32_BYTE( "glc1-obj-obj3.9z", 0x000003, 0x80000, CRC(65244f07) SHA1(fd876ca5f198914f15864397b358e56fcaa41e90) )
 
+	ROM_REGION( 0x200000, "c355spr_3", 0 )
+	ROM_LOAD32_BYTE( "glc1-obj-obj0.9t", 0x000000, 0x80000, CRC(0fe98d33) SHA1(5cfefa342fe2fa278d010927d761cb51105a4a60) )
+	ROM_LOAD32_BYTE( "glc1-obj-obj1.9w", 0x000001, 0x80000, CRC(660a4f6d) SHA1(c3c3525f51280e71f2d607649a6b5434cbd862c8) )
+	ROM_LOAD32_BYTE( "glc1-obj-obj2.9y", 0x000002, 0x80000, CRC(90bcc5a3) SHA1(76cb23e295bb15279e046e83f8e4ab9f85f68243) )
+	ROM_LOAD32_BYTE( "glc1-obj-obj3.9z", 0x000003, 0x80000, CRC(65244f07) SHA1(fd876ca5f198914f15864397b358e56fcaa41e90) )
+
 	/********* PSN board x3 *********/
 	ROM_REGION( 0x040000, "psn_b1_cpu", 0 )
 	ROM_LOAD16_BYTE( "glc-psn-prg0b.ic22", 0x000001, 0x20000, CRC(da8a74f8) SHA1(2826a55a4a0acec07ff760c7857da10c4ffaf7d0) )
@@ -948,6 +1037,12 @@ ROM_START( gal3zlgr )
 	ROM_LOAD32_BYTE( "gz1-obj-obj2.9y", 0x000001, 0x80000, CRC(c9a8abf3) SHA1(a7969a01b1174032e02cdd8f81850eb67d5e747f) )
 	ROM_LOAD32_BYTE( "gz1-obj-obj3.9z", 0x000003, 0x80000, CRC(31d55cb8) SHA1(76f3841727e1244d4582559593e7ebff801273a1) )
 
+	ROM_REGION( 0x200000, "c355spr_3", 0 )
+	ROM_LOAD32_BYTE( "gz1-obj-obj0.9t", 0x000000, 0x80000, CRC(8c6730b6) SHA1(3147d487dba352301148ab490a704516246cb057) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj1.9w", 0x000002, 0x80000, CRC(cba30c26) SHA1(5eb7ab0d9353e1e44a87a96f2ba5fbd22902ccc0) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj2.9y", 0x000001, 0x80000, CRC(c9a8abf3) SHA1(a7969a01b1174032e02cdd8f81850eb67d5e747f) )
+	ROM_LOAD32_BYTE( "gz1-obj-obj3.9z", 0x000003, 0x80000, CRC(31d55cb8) SHA1(76f3841727e1244d4582559593e7ebff801273a1) )
+
 	/********* PSN board x3 *********/
 	ROM_REGION( 0x040000, "psn_b1_cpu", 0 )
 	ROM_LOAD16_BYTE( "glc1-psn-prg0c.ic22", 0x000001, 0x20000, CRC(3d6e22f7) SHA1(84278036bb474cd00157d809fea020eb847fccd4) )
@@ -1007,9 +1102,23 @@ void gal3_state::gal3zlgr_init()
 	uint8_t *rom  = (uint8_t *)memregion("cpuslv")->base();
 
 	rom[0x2016] = 0x16; // Timing hack to delay the slave 68020 for longer (was 0x4)
+	
+
+	uint8_t *rso_rom = (uint8_t *)memregion("rs_cpu")->base();
+
+	const uint16_t rs_patch0[] = {
+		0x7210, // moveq d1, #$10
+		0x51c9, 0xfffe, // dbra d1, .
+		0x4e75 // rts
+	};
+	const uint16_t rs_patch1[] = {
+		0x6100, 0xec32// bsr.w #0x40
+	};
+	memcpy(&rso_rom[0x0040], rs_patch0, sizeof(rs_patch0));
+	memcpy(&rso_rom[0x140c], rs_patch1, sizeof(rs_patch1));
 }
 
 
 /*     YEAR  NAME     PARENT  MACHINE  INPUT  CLASS       INIT           MONITOR  COMPANY  FULLNAME                                    FLAGS */
-GAMEL( 1992, gal3,     0,     gal3,    gal3,  gal3_state, empty_init,    ROT0,    "Namco", "Galaxian 3 - Theater 6 : Project Dragoon", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
-GAMEL( 1994, gal3zlgr, 0,     gal3,    gal3,  gal3_state, gal3zlgr_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Attack of the Zolgear", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_dualhsxs )
+GAMEL( 1992, gal3,     0,     gal3,    gal3,  gal3_state, empty_init,    ROT0,    "Namco", "Galaxian 3 - Theater 6 : Project Dragoon", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_triphsxs )
+GAMEL( 1994, gal3zlgr, 0,     gal3,    gal3,  gal3_state, gal3zlgr_init, ROT0,    "Namco", "Galaxian 3 - Theater 6 : Attack of the Zolgear", MACHINE_NOT_WORKING | MACHINE_NO_SOUND, layout_triphsxs )
